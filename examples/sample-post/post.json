@@ -1,0 +1,26 @@
+{
+  "slug": "claude-code-verify",
+  "date": "2026-11-26",
+  "topic": "让 Claude Code 改完代码先跑测试，再说改好了",
+  "insight": "它说「改好了」，意思是「我改完了」，不是「我验证过了」。",
+  "testing": "「能直接抄的一段配置」这类选题，在小白读者里的收藏率能不能高过账号中位数",
+  "keywords": ["Claude Code", "CLAUDE.md", "AI编程"],
+  "cover": {"big": "改好了≠测过了", "sub": "一段话，让 Claude Code 改完先跑测试"},
+  "titles": [
+    "AI说改好了却没跑测试？抄这段",
+    "Claude Code先跑测试再交活",
+    "CLAUDE.md加这段，改完先跑测试"
+  ],
+  "body": "让 Claude Code 改完 bug，它说改好了，你一跑还是报错？\n它说的「改好了」，意思是「我改完了」，不是「我验证过了」。这篇给你一段能直接抄进 CLAUDE.md 的话，让它改完先自己跑测试。\n\n为什么会这样\nClaude Code 默认不知道你的项目怎么才算完成。你没告诉它要跑哪个命令，它就只能看代码像不像对的。\n\n怎么做\n在项目根目录找到 CLAUDE.md，没有就新建一个，把下面这段贴进去：\n\n改完代码后：\n1. 运行 npm test\n2. 全部通过再告诉我完成\n3. 有失败就贴出报错原文，先别说改好了\n\n把 npm test 换成你项目里真正的测试命令。没有测试的项目，就写你平时手动检查的那一步，比如「运行 npm run build，没报错再说完成」。\n\n为什么写在 CLAUDE.md 里\nClaude Code 开新对话时会自动读这个文件。写在这里，就不用每次在对话里重复一遍。\n\n写了也别全信\n它大多数时候会照做，但不保证每次都跑。看它的回复里有没有贴出测试结果，没有就追问一句：测试结果呢？",
+  "tags": ["ClaudeCode", "AI编程", "编程小白", "AI工具", "效率工具", "程序员"],
+  "cards": [
+    {"head": "它为什么说改好了", "text": "你没告诉它怎么才算「完成」，\n它就只能看代码==像不像对的==。"},
+    {"head": "把这段抄进 CLAUDE.md", "code": "改完代码后：\n1. 运行 npm test\n2. 全部通过再告诉我完成\n3. 有失败就贴出报错原文", "note": "npm test 换成你项目自己的测试命令"},
+    {"head": "没有测试的项目", "text": "写你平时手动检查的那一步。\n比如：运行 npm run build，==没报错再说完成==。"},
+    {"head": "写了也别全信", "text": "看它回复里有没有贴测试结果。\n没有，就追问一句：\n测试结果呢？"}
+  ],
+  "pinned_comment": "出处：Claude Code 官方文档 Memory 一节（CLAUDE.md 会在启动时自动加载）。配置是示意，命令按你的项目改。",
+  "sources": [{"name": "Claude Code 文档：Manage Claude's memory", "url": ""}],
+  "first_person_confirmed": [],
+  "ai_disclosure": true
+}

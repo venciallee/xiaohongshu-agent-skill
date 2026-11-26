@@ -1,0 +1,20 @@
+{
+  "name": "xiaohongshu-agent",
+  "description": "11 个小红书图文 skill + 一个 Go 写的本地检查工具：选题、写笔记、封面标题打分、去 AI 腔、发布前检查（导流 / 诱导 / 极限词 / AI 声明）、白底卡片出图、低粉爆文对标、72 小时复盘、周计划、主页诊断、评论区整理、长内容拆篇。只写不发：发布永远由本人在 App 里手动完成。",
+  "version": "1.0.0",
+  "author": {
+    "name": "venciallee",
+    "url": "https://github.com/venciallee"
+  },
+  "license": "MIT",
+  "keywords": [
+    "xiaohongshu",
+    "小红书",
+    "rednote",
+    "content",
+    "humanizer",
+    "go"
+  ],
+  "homepage": "https://github.com/venciallee/xiaohongshu-agent-skill",
+  "repository": "https://github.com/venciallee/xiaohongshu-agent-skill"
+}

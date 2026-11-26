@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# xhs 的启动器：第一次运行（或源码有改动）时自动 go build，之后直接执行。
+# 想全局可用：cd tool && go install .   （装到 $(go env GOPATH)/bin/xhs）
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BIN="$DIR/tool/.bin/xhs"
+if [ ! -x "$BIN" ] || [ -n "$(find "$DIR/tool" \( -name '*.go' -o -name '*.json' \) -newer "$BIN" -print -quit)" ]; then
+  command -v go >/dev/null 2>&1 || { echo "需要 Go 1.22+ 来编译 xhs：https://go.dev/dl/" >&2; exit 2; }
+  (cd "$DIR/tool" && go build -o .bin/xhs .) >&2
+fi
+exec "$BIN" "$@"

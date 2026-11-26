@@ -1,0 +1,6 @@
+本项目的整体结构（单一职责的 skill 组合、共享 voice 档案、本地可运行的检查工具、
+人工发布闸门、「不编造」原则、outlier multiple 排序、诚实写明工具的局限）参考了
+Jake Schincariol 的 instagram-agent-skill（MIT License）：
+https://github.com/Jakeschincariol/instagram-agent-skill
+
+本项目没有复制其代码：工具用 Go 重写，词库、句式、平台规则、评分表均针对小红书和中文重新编写。

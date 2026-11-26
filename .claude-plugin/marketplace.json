@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "xiaohongshu-agent-skill",
+  "description": "小红书图文 agent skill pack",
+  "owner": {
+    "name": "venciallee",
+    "url": "https://github.com/venciallee"
+  },
+  "plugins": [
+    {
+      "name": "xiaohongshu-agent",
+      "description": "11 个小红书图文 skill + 本地检查工具 xhs。只写不发。",
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/venciallee/xiaohongshu-agent-skill"
+    }
+  ]
+}

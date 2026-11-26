@@ -1,0 +1,5 @@
+tool/.bin/
+tool/xhs
+.DS_Store
+*.png
+!docs/*.png
