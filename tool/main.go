@@ -1,18 +1,31 @@
 // xhs - 小红书 agent skill pack 的本地工具。
 //
-// 一个二进制，九个子命令，只用 Go 标准库，不联网，不上传任何东西，
-// 只读你给它的文本和表格。它不登录小红书，也不发布任何内容：
-// 这个 pack 里所有 skill 的最后一步都是「本人在 App 里手动发」。
+// 一个二进制，只用 Go 标准库，不联网，不上传，只读写你给它的文件和 $XHS_HOME 下的状态。
+// 它不登录小红书，也不发布任何内容：发布永远由用户在 App 里手动完成。
 //
-//	xhs human   draft.txt --report         去 AI 腔：删填充语、标记套话和句式
-//	xhs detect  draft.txt [after.txt]      五项读者视角自检，可对比前后
-//	xhs title   titles.txt --keywords ..   封面大字 / 标题打分 + 句式归类
-//	xhs check   post.json                  发布前检查：平台限制、导流、诱导、AI 声明……
-//	xhs cards   post.json -o out --render  生成 1080x1440 白底卡片（可调 Chrome 出 PNG）
-//	xhs swipe   captured.tsv --out f.md    对标笔记：按「赞藏 / 该账号中位数」排序
-//	xhs review  notes.csv                  72 小时复盘：漏斗拆解，分清是封面、内容还是主页的问题
-//	xhs log     add post.json | list       发布记录，给同质化检查和复盘用
-//	xhs eval    swipe.tsv                  用你自己的对标数据检验标题打分到底准不准
+// 写稿和把关
+//
+//	xhs title    titles.txt --keywords ..   封面大字 / 标题打分 + 句式归类
+//	xhs human    draft.txt --report         去 AI 腔
+//	xhs detect   draft.txt [after.txt]      五项读者视角自检
+//	xhs check    post.json                  发布前检查
+//	xhs cards    post.json --render         1080x1440 卡片 PNG + 溢出检查
+//
+// 研究
+//
+//	xhs words    comments.txt               读者原话里反复出现的词和问句
+//	xhs swipe    captured.tsv               对标笔记按「赞藏 / 账号中位数」排序
+//	xhs eval     captured.tsv               检验标题打分在你的领域准不准
+//
+// loop 状态（$XHS_HOME，格式见 docs/contract.md）
+//
+//	xhs status                              现在该做什么（编排器每次先跑它）
+//	xhs pool     add|list|use|drop          候选选题池
+//	xhs log      add|list                   发布记录
+//	xhs data     add|list                   每篇笔记的数据快照
+//	xhs goal     [log --followers N]        目标和涨粉轨迹
+//	xhs review   [--record]                 复盘
+//	xhs exp      new|list|show|close        实验账本，结论写进 playbook.md
 package main
 
 import (
@@ -25,29 +38,43 @@ import (
 	"strings"
 )
 
-//go:embed data/*.json
+//go:embed data/*
 var embedded embed.FS
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 func usage() {
-	fmt.Fprint(os.Stderr, `xhs `+version+` - 小红书图文的本地检查工具（不联网、不发布）
+	fmt.Fprint(os.Stderr, `xhs `+version+` - 小红书图文的本地工具（不联网、不发布）
 
-用法:
-  xhs human   <file|-> [--report] [-o out.txt] [--json]
-  xhs detect  <file|-> [compare-file] [--json]
-  xhs title   <file|-> [--keywords a,b] [--cover] [--json]
-  xhs check   <post.json|dir> [--keywords a,b] [--json]
-  xhs cards   <post.json|dir> [-o outdir] [--render] [--chrome path]
-  xhs swipe   <captured.tsv> [--out swipe.md] [--json]
-  xhs review  <notes.csv|tsv> [--json] [--md]
-  xhs log     add <post.json> [--published "2026-11-26 09:30"] | list [-n 10]
-  xhs eval    <swipe.tsv> [--keywords a,b]
-  xhs data    [--dump dir]       查看 / 导出内置词库和规则，导出后可以改
+写稿和把关
+  xhs title    <file|-> [--keywords a,b] [--cover]
+  xhs human    <file|-> [--report] [-o out.txt]
+  xhs detect   <file|-> [compare-file]
+  xhs check    <post.json|dir> [--keywords a,b]
+  xhs cards    <post.json|dir> [-o outdir] [--render] [--chrome path]
 
-环境变量:
-  XHS_HOME   状态目录，默认 ~/.xiaohongshu。里面的 house.json 覆盖账号规则，
-             data/*.json 覆盖内置词库，log.jsonl 是发布记录。
+研究
+  xhs words    <file...> [--top 40]
+  xhs swipe    <captured.tsv> [--out swipe.md]
+  xhs eval     <captured.tsv> [--keywords a,b]
+
+loop 状态（都在 $XHS_HOME 下）
+  xhs status
+  xhs pool     add --title .. --insight .. --scores "有用=3,..." | list [--all] | use <id> | drop <id>
+  xhs log      add <post.json> [--published "2026-11-26 09:30"] [--exp E1] | list [-n 10]
+  xhs data     add <id|标题> --views N --impressions N ... | add --file rows.csv | list [id]
+  xhs goal     [show] | log --followers N
+  xhs review   [notes.csv] [--at 48] [--record] [--md]
+  xhs exp      new --hypothesis .. --variable .. --change .. [--metric save_rate] | list | show <id> | close <id> --result ..
+
+其他
+  xhs init                       在 $XHS_HOME 生成配置模板（已有的不覆盖）
+  xhs defaults [--dump dir]      查看 / 导出内置词库、规则和配置模板
+
+所有命令都支持 --json（机器可读输出），失败时退出码非 0。
+
+环境变量
+  XHS_HOME   状态目录，默认 ~/.xiaohongshu
 `)
 }
 
@@ -78,7 +105,21 @@ func main() {
 	case "eval":
 		code = cmdEval(args)
 	case "data":
-		code = cmdData(args)
+		code = cmdDataStore(args)
+	case "defaults":
+		code = cmdDefaults(args)
+	case "init":
+		code = cmdInit(args)
+	case "status":
+		code = cmdStatus(args)
+	case "goal":
+		code = cmdGoal(args)
+	case "exp":
+		code = cmdExp(args)
+	case "pool":
+		code = cmdPool(args)
+	case "words":
+		code = cmdWords(args)
 	case "version", "--version", "-v":
 		fmt.Println("xhs", version)
 	case "help", "-h", "--help":
@@ -165,7 +206,7 @@ func printJSON(v any) {
 	_ = enc.Encode(v)
 }
 
-func cmdData(args []string) int {
+func cmdDefaults(args []string) int {
 	dump := ""
 	for i := 0; i < len(args); i++ {
 		if args[i] == "--dump" && i+1 < len(args) {
@@ -175,7 +216,7 @@ func cmdData(args []string) int {
 	}
 	entries, _ := embedded.ReadDir("data")
 	if dump == "" {
-		fmt.Println("内置数据文件（用 --dump <dir> 导出后修改，放进 $XHS_HOME/data/ 即可覆盖）:")
+		fmt.Println("内置数据文件（xhs defaults --dump <dir> 导出后修改。slop/titles/platform 放进 $XHS_HOME/data/ 覆盖；house/goal/topic 放在 $XHS_HOME/ 下）:")
 		for _, e := range entries {
 			b, _ := embedded.ReadFile("data/" + e.Name())
 			fmt.Printf("  %-14s %6d bytes\n", e.Name(), len(b))
@@ -255,4 +296,49 @@ func splitList(s string) []string {
 		}
 	}
 	return out
+}
+
+// accountTemplates are the files a user fills in for their own account.
+var accountTemplates = []string{"voice.md", "sources.md", "goal.json", "topic.json", "house.json"}
+
+func cmdInit(args []string) int {
+	f := parseFlags(args)
+	if err := os.MkdirAll(filepath.Join(xhsHome(), "posts"), 0o755); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	var created, kept []string
+	for _, name := range accountTemplates {
+		dst := homePath(name)
+		if fileExists(dst) {
+			kept = append(kept, name)
+			continue
+		}
+		b, err := embedded.ReadFile("data/" + name)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		if err := os.WriteFile(dst, b, 0o644); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		created = append(created, name)
+	}
+	if f.bools["json"] {
+		printJSON(map[string]any{"home": xhsHome(), "created": created, "kept": kept})
+		return 0
+	}
+	fmt.Printf("XHS_HOME = %s\n", xhsHome())
+	for _, n := range created {
+		fmt.Println("  新建  " + n)
+	}
+	for _, n := range kept {
+		fmt.Println("  已有  " + n + "（没动）")
+	}
+	fmt.Println("\n接下来：")
+	fmt.Println("  1. 填 voice.md（这个号写给谁、怎么说话）和 sources.md（去哪找选题）")
+	fmt.Println("  2. goal.json 填目标；house.json / topic.json 按需改")
+	fmt.Println("  3. xhs status 看下一步")
+	return 0
 }

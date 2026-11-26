@@ -1,6 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -112,6 +116,113 @@ func TestNum(t *testing.T) {
 	for in, want := range cases {
 		if got, ok := num(in); !ok || got != want {
 			t.Errorf("num(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestScoreTopic(t *testing.T) {
+	r := TopicRubric{Threshold: 3}
+	r.Items = append(r.Items, struct {
+		Key   string `json:"key"`
+		Max   int    `json:"max"`
+		Guide string `json:"guide"`
+	}{"有用", 3, ""}, struct {
+		Key   string `json:"key"`
+		Max   int    `json:"max"`
+		Guide string `json:"guide"`
+	}{"新", 2, ""})
+	if _, total, err := scoreTopic("有用=3，新=1", r); err != nil || total != 4 {
+		t.Errorf("total=%d err=%v", total, err)
+	}
+	if _, _, err := scoreTopic("有用=4,新=1", r); err == nil {
+		t.Error("out of range score accepted")
+	}
+	if _, _, err := scoreTopic("有用=1", r); err == nil {
+		t.Error("missing item accepted")
+	}
+	if _, _, err := scoreTopic("有用=1,新=1,话题=1", r); err == nil {
+		t.Error("unknown item accepted")
+	}
+}
+
+func TestSnapshotAtPrefersAtOrAfter(t *testing.T) {
+	pts := []DataPoint{{Note: "a", Hours: 20, Views: 1}, {Note: "a", Hours: 50, Views: 2}, {Note: "a", Hours: 170, Views: 3}, {Note: "b", Hours: 48, Views: 9}}
+	if p, _ := snapshotAt(pts, "a", 48); p.Views != 2 {
+		t.Errorf("want the 50h snapshot, got %+v", p)
+	}
+	if p, _ := snapshotAt(pts, "a", 168); p.Views != 3 {
+		t.Errorf("want the 170h snapshot, got %+v", p)
+	}
+	if _, ok := snapshotAt(pts, "c", 48); ok {
+		t.Error("unknown note found")
+	}
+}
+
+func TestImproved(t *testing.T) {
+	a := ReviewRecord{Recent: map[string]float64{"views": 1000, "follow": 0.02}, FollowersPerDay: 10}
+	b := ReviewRecord{Recent: map[string]float64{"views": 1050, "follow": 0.02}, FollowersPerDay: 10}
+	if ok, _ := improved(a, b, 0.1); ok {
+		t.Error("+5% should not count as progress at min_gain 0.1")
+	}
+	b.FollowersPerDay = 12
+	if ok, _ := improved(a, b, 0.1); !ok {
+		t.Error("+20% followers/day should count")
+	}
+}
+
+func TestWordsQuestions(t *testing.T) {
+	res := analyzeWords("小白写代码用什么工具\n小白写代码好难\n今天天气不错", 10)
+	if len(res.Questions) != 1 {
+		t.Errorf("questions = %+v", res.Questions)
+	}
+	found := false
+	for _, w := range res.Phrases {
+		if w.Text == "小白写代码" && w.Count == 2 {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("phrases = %+v", res.Phrases)
+	}
+}
+
+// 每个句式的示例必须能被自己的正则认出来。改 titles.json 或加领域包时，这条测试会拦住写错的正则。
+func TestFormulaExamplesSelfClassify(t *testing.T) {
+	files := []string{"data/titles.json"}
+	packs, _ := filepath.Glob("../packs/*/titles.json")
+	files = append(files, packs...)
+	for _, path := range files {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var tb TitleBook
+		if err := json.Unmarshal(b, &tb); err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		byID := map[int]*Formula{}
+		for i := range tb.Formulas {
+			f := &tb.Formulas[i]
+			re, err := regexp.Compile(f.Match)
+			if err != nil {
+				t.Errorf("%s #%d 正则无效: %v", path, f.ID, err)
+				continue
+			}
+			f.re = re
+			byID[f.ID] = f
+		}
+		for _, id := range tb.ClassifyOrder {
+			if f, ok := byID[id]; ok {
+				tb.ordered = append(tb.ordered, f)
+			}
+		}
+		if len(tb.ordered) != len(tb.Formulas) {
+			t.Errorf("%s: classify_order 里漏了句式（%d / %d）", path, len(tb.ordered), len(tb.Formulas))
+		}
+		for _, f := range tb.Formulas {
+			if got, _ := tb.classify(f.Example); got != f.ID {
+				t.Errorf("%s: #%d 的示例「%s」被认成了 #%d", path, f.ID, f.Example, got)
+			}
 		}
 	}
 }

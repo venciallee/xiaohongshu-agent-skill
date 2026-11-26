@@ -334,6 +334,21 @@ func cmdEval(args []string) int {
 		}
 		return xs
 	}
+	if f.bools["json"] {
+		res := map[string]any{"rows": len(rows), "top": len(top), "bottom": len(bot)}
+		per := map[string]float64{"总分": auc(collect(top, ""), collect(bot, ""))}
+		for _, c := range titleChecks {
+			per[c] = auc(collect(top, c), collect(bot, c))
+		}
+		for k, v := range per {
+			if math.IsNaN(v) {
+				per[k] = 0.5
+			}
+		}
+		res["auc"] = per
+		printJSON(res)
+		return 0
+	}
 	fmt.Printf("\n标题打分检验  ·  %d 条  ·  上 1/3 = %d 条，下 1/3 = %d 条（按倍数分组）\n", len(rows), len(top), len(bot))
 	fmt.Println(strings.Repeat("=", 64))
 	all := auc(collect(top, ""), collect(bot, ""))

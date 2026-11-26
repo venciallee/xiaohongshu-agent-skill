@@ -301,9 +301,25 @@ func cmdCards(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	fmt.Printf("\n卡片  ·  %d 张  ·  1080x1440  ·  %s\n", len(cards), outDir)
-	fmt.Println(strings.Repeat("=", 60))
+	type cardOut struct {
+		HTML     string `json:"html"`
+		PNG      string `json:"png,omitempty"`
+		Overflow bool   `json:"overflow"`
+	}
+	asJSON := f.bools["json"]
+	if !asJSON {
+		fmt.Printf("\n卡片  ·  %d 张  ·  1080x1440  ·  %s\n", len(cards), outDir)
+		fmt.Println(strings.Repeat("=", 60))
+	}
 	if !f.bools["render"] {
+		if asJSON {
+			var res []cardOut
+			for _, c := range cards {
+				res = append(res, cardOut{HTML: c.HTML})
+			}
+			printJSON(map[string]any{"dir": outDir, "cards": res, "rendered": false})
+			return 0
+		}
 		for _, c := range cards {
 			fmt.Println("  " + filepath.Base(c.HTML))
 		}
@@ -317,6 +333,7 @@ func cmdCards(args []string) int {
 	}
 	bad := 0
 	var pngs []string
+	var res []cardOut
 	for _, c := range cards {
 		over, err := renderCard(chrome, c)
 		if err != nil {
@@ -328,12 +345,27 @@ func cmdCards(args []string) int {
 			status = "!!  溢出"
 			bad++
 		}
-		fmt.Printf("  %s %s\n", padRight(status, 10), filepath.Base(c.PNG))
+		res = append(res, cardOut{HTML: c.HTML, PNG: c.PNG, Overflow: over})
+		if !asJSON {
+			fmt.Printf("  %s %s\n", padRight(status, 10), filepath.Base(c.PNG))
+		}
 		pngs = append(pngs, c.PNG)
 	}
 	sheet := filepath.Join(outDir, "preview.png")
-	if err := contactSheet(pngs, sheet); err != nil {
-		fmt.Fprintln(os.Stderr, "拼预览图失败:", err)
+	sheetErr := contactSheet(pngs, sheet)
+	if asJSON {
+		out := map[string]any{"dir": outDir, "cards": res, "rendered": true, "overflow": bad}
+		if sheetErr == nil {
+			out["preview"] = sheet
+		}
+		printJSON(out)
+		if bad > 0 {
+			return 1
+		}
+		return 0
+	}
+	if sheetErr != nil {
+		fmt.Fprintln(os.Stderr, "拼预览图失败:", sheetErr)
 	} else {
 		fmt.Printf("\n  预览：%s\n", sheet)
 	}

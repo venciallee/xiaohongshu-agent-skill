@@ -77,10 +77,10 @@ func (tb *TitleBook) classify(s string) (int, string) {
 }
 
 var (
-	searchIntentRE = regexp.MustCompile(`(?i)怎么用|怎么(设置|配置|写|装)|教程|技巧|设置|配置|提示词|命令|入门|小白|新手|直接抄|模板|用法|清单|是什么|区别|对比|vs`)
+	searchIntentRE = regexp.MustCompile(`(?i)怎么|如何|教程|攻略|技巧|方法|步骤|入门|新手|小白|避坑|推荐|测评|对比|区别|是什么|清单|合集|模板|直接抄|用法|设置|配置|做法|配方|vs`)
 	hookRE         = regexp.MustCompile(`≠|→|(?i)\bvs\b|却|没|假装|别|不要|千万|错|坑|白用|浪费|省|少走|才发现|才知道|原来|其实|竟然|居然|没想到|大部分人|很多人|没人|终于|一直|总是|老是|反了|偷偷|悄悄|为什么`)
 	weakOpenRE     = regexp.MustCompile(`^(关于|今天|分享|一篇|浅谈|聊聊|我的|一些|简单|记录|随便|小记|日常)`)
-	concreteNounRE = regexp.MustCompile(`命令|配置|文件|快捷键|提示词|模板|开关|设置|一行|插件|脚本|规则`)
+	concreteNounRE = regexp.MustCompile(`步骤|清单|模板|公式|配方|做法|设置|配置|开关|命令|提示词|文件|快捷键|一行|一句话|一张图|表格|工具`)
 	exclaimRE      = regexp.MustCompile(`[！!]{2,}|。$`)
 )
 
@@ -149,7 +149,7 @@ func scoreTitle(s string, cover bool, keywords []string, tb *TitleBook, p *Platf
 			names++
 		}
 	}
-	nouns := len(concreteNounRE.FindAllString(s, -1))
+	nouns := len(concreteNounRE.FindAllString(s, -1)) + len(containsAnyFold(s, h.ConcreteWords))
 	spec := nums + names + nouns
 	ss := 20.0
 	switch {
@@ -178,7 +178,7 @@ func scoreTitle(s string, cover bool, keywords []string, tb *TitleBook, p *Platf
 			sk, skDetail = 10, "没有你要的搜索词（"+strings.Join(keywords, "、")+"）"
 		}
 	} else {
-		intent := searchIntentRE.FindAllString(s, -1)
+		intent := append(searchIntentRE.FindAllString(s, -1), containsAnyFold(s, h.SearchWords)...)
 		sk = 40
 		if len(intent) > 0 {
 			sk = 80

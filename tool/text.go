@@ -27,6 +27,8 @@ type House struct {
 	FirstPersonMarkers []string  `json:"first_person_markers"`
 	CardForbidden      []string  `json:"card_forbidden"`
 	RequireFields      []string  `json:"require_fields"`
+	SearchWords        []string  `json:"search_words"`
+	ConcreteWords      []string  `json:"concrete_words"`
 	CardStyle          CardStyle `json:"card_style"`
 }
 

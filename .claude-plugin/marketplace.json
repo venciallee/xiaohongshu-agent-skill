@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "xiaohongshu-agent",
-      "description": "11 个小红书图文 skill + 本地检查工具 xhs。只写不发。",
+      "description": "小红书图文 agent skill pack：12 个 skill + 本地工具 xhs，可跑成内容 loop。只写不发。",
       "source": "./",
       "category": "productivity",
       "homepage": "https://github.com/venciallee/xiaohongshu-agent-skill"

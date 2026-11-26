@@ -13,7 +13,15 @@ xhs cards post.json --render         # 调本机 Chrome 出 PNG，检查溢出�
 xhs cards post.json --render --chrome "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
-输出在 post.json 同目录的 `cards/` 下。溢出的卡片图上会盖一条红色横幅，命令行退出码非 0。
+## 读 / 写
+
+| | 文件 | 用途 |
+| --- | --- | --- |
+| 读 | `post.json` | 封面和卡片文字 |
+| 读 | `house.json` | `card_style`（颜色、字体）、`handle_on_cards`、`max_cards` |
+| 写 | post.json 同目录 `cards/` | card-01.html… / .png、preview.png |
+
+输出在 post.json 同目录的 `cards/` 下。账号名（`handle_on_cards`）、颜色、字体都来自 `house.json`。溢出的卡片图上会盖一条红色横幅，命令行退出码非 0。
 
 ## 风格，是刻意收着的
 
@@ -35,7 +43,7 @@ xhs cards post.json --render --chrome "/Applications/Google Chrome.app/Contents/
 最后   能截图的那张：要复制的配置 / 提示词放这里，或者放第 2 张。
 ```
 
-最多张数看 `house.json`（RSI Engineering 是 5 张含封面）。平台上限 18 张，但一张卡讲一件事，5 张讲不完说明是两篇。
+最多张数看 `house.json` 的 `max_cards`。平台上限 18 张，但一张卡讲一件事；张数远超账号习惯，通常说明是两篇。
 
 文字里用 `==这样==` 标重点，一张卡最多一处。
 
@@ -56,6 +64,6 @@ xhs cards post.json --render --chrome "/Applications/Google Chrome.app/Contents/
 
 ## 底线
 
-- 不用 AI 生图做封面人物或产品图。真要截图，用本人自己的截图。
+- 不用 AI 生图做封面人物或产品图。真要截图，用用户自己的截图。
 - 不把别人笔记的卡片拿来改字。学结构，不抄设计。
 - 卡片上有 AI 参与，发布时一样勾选 AI 声明。

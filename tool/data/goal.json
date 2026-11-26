@@ -1,0 +1,12 @@
+{
+  "note": "目标和节奏。复制到 $XHS_HOME/goal.json 再改。target 为 0 表示还没定目标，xhs status 会提示。",
+  "metric": "followers",
+  "target": 0,
+  "deadline": "",
+  "review_every_days": 2,
+  "capture_hours": [48, 168],
+  "compare_hours": 48,
+  "recent_days": 7,
+  "min_notes_per_experiment": 5,
+  "stall": {"reviews": 3, "min_gain": 0.1}
+}

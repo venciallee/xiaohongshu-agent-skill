@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -18,7 +17,7 @@ import (
 //           卡片上不放来源口径、洞察句和「本篇在测什么」必须写
 //
 // 先打印双列流里这篇大概长什么样，再逐项 PASS / WARN / FAIL。
-// 它不登录、不上传、不发布。READY 的意思是「可以交给本人去 App 里发了」。
+// 它不登录、不上传、不发布。READY 的意思是「可以交给用户去 App 里发了」。
 
 type Card struct {
 	Head string `json:"head"`
@@ -38,6 +37,8 @@ type Post struct {
 	Topic    string   `json:"topic"`
 	Insight  string   `json:"insight"`
 	Testing  string   `json:"testing"`
+	Category string   `json:"category"`
+	Exp      string   `json:"exp"`
 	Keywords []string `json:"keywords"`
 	Cover    struct {
 		Big string `json:"big"`
@@ -125,7 +126,7 @@ func runCheck(p *Post, keywords []string, plat *Platform, h House, lex *Lexicon,
 
 	// ---- 标题 ----
 	if len(titles) == 0 {
-		rep.add("FAIL", "标题", "没有标题。写 3 个备选放进 titles，本人选一个。")
+		rep.add("FAIL", "标题", "没有标题。写 3 个备选放进 titles，用户选一个。")
 	}
 	for i, t := range titles {
 		n := utf16Len(t)
@@ -164,7 +165,7 @@ func runCheck(p *Post, keywords []string, plat *Platform, h House, lex *Lexicon,
 	}
 
 	// ---- 同质化：和最近发过的比 ----
-	if logs := readLog(); len(logs) > 0 && len(titles) > 0 {
+	if logs := readLogEntries(); len(logs) > 0 && len(titles) > 0 {
 		recent := logs
 		if len(recent) > 5 {
 			recent = recent[len(recent)-5:]
@@ -172,11 +173,11 @@ func runCheck(p *Post, keywords []string, plat *Platform, h House, lex *Lexicon,
 		fid, fname := tb.classify(titles[0])
 		same := 0
 		for _, e := range recent {
-			if v, ok := e["formula_id"].(float64); ok && int(v) == fid && fid != 0 {
+			if e.FormulaID == fid && fid != 0 {
 				same++
 			}
-			if c, ok := e["cover"].(string); ok && c != "" && c == p.Cover.Big {
-				rep.add("WARN", "同质化", "封面大字和之前发过的一篇一模一样："+c)
+			if e.Cover != "" && e.Cover == p.Cover.Big {
+				rep.add("WARN", "同质化", "封面大字和之前发过的一篇一模一样："+e.Cover)
 			}
 		}
 		if same >= 3 {
@@ -347,7 +348,7 @@ func runCheck(p *Post, keywords []string, plat *Platform, h House, lex *Lexicon,
 				if sev == "" {
 					sev = "WARN"
 				}
-				rep.add(sev, "身份句", "「"+strings.Join(uniq(m), "」「")+"」。正文不写自我介绍，可信度靠洞察、原文和踩过的坑。")
+				rep.add(sev, "身份句", "「"+strings.Join(uniq(m), "」「")+"」。按账号规则正文不写自我介绍：可信度靠洞察、原文和踩过的坑。")
 			}
 		}
 	}
@@ -373,13 +374,13 @@ func runCheck(p *Post, keywords []string, plat *Platform, h House, lex *Lexicon,
 	}
 	rep.Confirm = uniq(rep.Confirm)
 	if len(rep.Confirm) > 0 {
-		rep.add("WARN", "第一人称经历", fmt.Sprintf("%d 句「我试过 / 实测」类的话等本人确认。没确认的改成机制说法，确认过的写进 first_person_confirmed。", len(rep.Confirm)))
+		rep.add("WARN", "第一人称经历", fmt.Sprintf("%d 句「我试过 / 实测」类的话等账号主人确认。没确认的改成机制说法，确认过的写进 first_person_confirmed。", len(rep.Confirm)))
 	}
 	for _, field := range h.RequireFields {
 		v := map[string]string{"insight": p.Insight, "testing": p.Testing, "topic": p.Topic}[field]
 		name := map[string]string{"insight": "洞察句", "testing": "本篇在测什么", "topic": "选题"}[field]
 		if strings.TrimSpace(v) == "" {
-			rep.add("WARN", name, "没写。没有它，72 小时后复盘时不知道这篇在验证什么。")
+			rep.add("WARN", name, "没写。没有它，复盘时不知道这篇在验证什么。")
 		}
 	}
 	if numberClaimRE.MatchString(all) && len(p.Sources) == 0 {
@@ -519,7 +520,7 @@ func cmdCheck(args []string) int {
 		fmt.Printf("  %s %s %s\n", padRight(it.Status, 6), padRight(it.Check, 14), it.Detail)
 	}
 	if len(rep.Confirm) > 0 {
-		fmt.Println("\n  等本人确认的第一人称句：")
+		fmt.Println("\n  等账号主人确认的第一人称句：")
 		for _, c := range rep.Confirm {
 			fmt.Println("    - " + truncWidth(c, 64))
 		}
@@ -530,24 +531,4 @@ func cmdCheck(args []string) int {
 		return 0
 	}
 	return 1
-}
-
-// readLog loads $XHS_HOME/log.jsonl (one JSON object per line).
-func readLog() []map[string]any {
-	path := filepath.Join(xhsHome(), "log.jsonl")
-	fh, err := os.Open(path)
-	if err != nil {
-		return nil
-	}
-	defer fh.Close()
-	var out []map[string]any
-	sc := bufio.NewScanner(fh)
-	sc.Buffer(make([]byte, 1024*1024), 4*1024*1024)
-	for sc.Scan() {
-		var m map[string]any
-		if json.Unmarshal(sc.Bytes(), &m) == nil {
-			out = append(out, m)
-		}
-	}
-	return out
 }

@@ -1,5 +1,5 @@
 {
-  "note": "本账号自己的规则。默认值偏保守；把 examples/ 里预填的那份复制到 $XHS_HOME/house.json 覆盖。只写想改的字段也行，没写的沿用这里的默认。",
+  "note": "账号规则。xhs init 会放一份到 $XHS_HOME/house.json；只写想改的字段也行，没写的沿用默认。search_words / concrete_words 是你领域里读者会搜的词、算「具体」的词，标题打分会用。",
   "account": "",
   "handle_on_cards": "",
   "max_cards": 9,
@@ -11,9 +11,28 @@
   "card_code_lines_max": 12,
   "identity_sentence": "WARN",
   "company_not_subject": [],
-  "first_person_markers": ["我试过", "我用了", "我发现", "亲测", "实测", "我们团队", "我踩过", "我自己", "我一直", "我每天"],
-  "card_forbidden": ["数据来源", "来源：", "统计口径", "免责", "仅供参考"],
-  "require_fields": ["insight"],
+  "first_person_markers": [
+    "我试过",
+    "我用了",
+    "我发现",
+    "亲测",
+    "实测",
+    "我们团队",
+    "我踩过",
+    "我自己",
+    "我一直",
+    "我每天"
+  ],
+  "card_forbidden": [
+    "数据来源",
+    "来源：",
+    "统计口径",
+    "免责",
+    "仅供参考"
+  ],
+  "require_fields": [
+    "insight"
+  ],
   "card_style": {
     "background": "#FFFFFF",
     "ink": "#111111",
@@ -22,5 +41,7 @@
     "code_bg": "#F4F4F4",
     "font": "\"PingFang SC\", \"Noto Sans CJK SC\", \"Source Han Sans SC\", \"Microsoft YaHei\", sans-serif",
     "mono": "\"JetBrains Mono\", \"SF Mono\", Menlo, \"Noto Sans Mono CJK SC\", monospace"
-  }
+  },
+  "search_words": [],
+  "concrete_words": []
 }
